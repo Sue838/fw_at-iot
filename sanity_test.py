@@ -1,57 +1,11 @@
-import requests
-from requests.exceptions import JSONDecodeError
-
-
-def make_valid_payload(method: str, params: dict | None = None) -> dict:
-    payload = {"method": method, "jsonrpc": "2.0", "id": 1}
-
-    if params:
-        payload["params"] = params
-
-    return payload
-
-
-def send_post(method: str | None = None, params: dict | None = None, jsonrpc: str | None = None, id: int | None= None):
-    request_body = {}
-
-    if method:
-        request_body["method"] = method
-
-    if params:
-        request_body["params"] = params
-
-    if jsonrpc:
-        request_body["jsonrpc"] = jsonrpc
-
-    if id:
-        request_body["id"] = id
-
-    request_headers = {"Authorization": "0000"}
-    res = requests.post("http://127.0.0.1:9898/rpc", json=request_body, headers=request_headers)
-
-    try:
-        return res.json()
-    except JSONDecodeError:
-        return {}
-
-
-def get_sensor_info():
-    payload = make_valid_payload(method="get_info")
-    sensor_response = send_post(**payload)
-    sensor_info = sensor_response.get("result", {})
-    return sensor_info
-
-
-def get_sensor_reading():
-    payload = make_valid_payload(method="get_reading")
-    sensor_response = send_post(**payload)
-    sensor_reading = sensor_response.get("result", {})
-    return sensor_reading
-
-
-def test_sanity():
+def test_sanity(get_sensor_info, get_sensor_reading, get_sensor_methods, set_sensor_name, set_sensor_reading_interval, reset_sensor_to_factory, update_sensor_firmware, sensor_reboot):
     sensor_info = get_sensor_info()
-
+    """"set_sensor_name("new-name")
+    sensor_methods = get_sensor_methods()
+    set_sensor_reading_interval("5")
+    reset_to_factory = reset_sensor_to_factory()
+    update_firmware = update_sensor_firmware()
+    reboot = sensor_reboot()"""
     sensor_name = sensor_info.get("name")
     assert isinstance(sensor_name, str), "Sensor name is not a string"
 
