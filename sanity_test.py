@@ -1,11 +1,6 @@
-def test_sanity(get_sensor_info, get_sensor_reading, get_sensor_methods, set_sensor_name, set_sensor_reading_interval, reset_sensor_to_factory, update_sensor_firmware, sensor_reboot):
+def test_sanity(get_sensor_info, get_sensor_reading):
     sensor_info = get_sensor_info()
-    """"set_sensor_name("new-name")
-    sensor_methods = get_sensor_methods()
-    set_sensor_reading_interval("5")
-    reset_to_factory = reset_sensor_to_factory()
-    update_firmware = update_sensor_firmware()
-    reboot = sensor_reboot()"""
+   
     sensor_name = sensor_info.get("name")
     assert isinstance(sensor_name, str), "Sensor name is not a string"
 
