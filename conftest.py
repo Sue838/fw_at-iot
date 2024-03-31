@@ -3,7 +3,9 @@ import pytest
 from enum import Enum
 import requests
 from typing import Callable
+import logging
 
+log = logging.getLogger(__name__)
 
 class SensorMethod(Enum):
     GET_INFO = "get_info"
@@ -30,19 +32,29 @@ def make_valid_payload(
 def wait(func: Callable, condition: Callable, tries: int, timeout: int, **kwargs):
     for i in range(tries):
         try:
-            print(f"Calling function {func.__name__} with args {kwargs} - attempt {i + 1}")
+            log.debug(
+                f"Calling function {func.__name__} with args {kwargs} - attempt {i + 1}"
+                )
             result = func(**kwargs)
 
-            print(f"Evaluating result of the call with function {condition.__name__}")
+            log.debug(
+                f"Evaluating result of the call with function {condition.__name__}"
+                )
             if condition(result):
                 return result
         except Exception as e:
-            print(f"Function call raised exception {e}, ignoring it")
+            log.debug(
+                f"Function call raised exception {e}, ignoring it"
+                )
 
-        print(f"Sleeping for {timeout} seconds")
+        log.debug(
+            f"Sleeping for {timeout} seconds"
+            )
         sleep(timeout)
 
-    print("Exhausted all tries, condition evaluates to False, returning None")
+    log.debug(
+        "Exhausted all tries, condition evaluates to False, returning None"
+        )
     return
 
 
@@ -128,7 +140,7 @@ def get_sensor_info(make_valid_request):
     return inner
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def get_sensor_reading(make_valid_request):
     def inner():
         return make_valid_request(SensorMethod.GET_READING)
@@ -136,7 +148,7 @@ def get_sensor_reading(make_valid_request):
     return inner
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def set_sensor_name(make_valid_request):
     def inner(name: str):
         return make_valid_request(SensorMethod.SET_NAME, {"name": name})
@@ -144,7 +156,7 @@ def set_sensor_name(make_valid_request):
     return inner
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def get_sensor_methods(make_valid_request):
     def inner():
         return make_valid_request(SensorMethod.GET_METHODS)
@@ -152,7 +164,7 @@ def get_sensor_methods(make_valid_request):
     return inner
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def set_sensor_reading_interval(make_valid_request):
     def inner(interval: int):
         return make_valid_request(
@@ -170,7 +182,7 @@ def reset_sensor_to_factory(make_valid_request):
     return inner
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def update_sensor_firmware(make_valid_request):
     def inner():
         return make_valid_request(SensorMethod.UPDATE_FIRMWARE)
@@ -178,8 +190,8 @@ def update_sensor_firmware(make_valid_request):
     return inner
 
 
-@pytest.fixture
-def reboot_sensor(make_valid_request):
+@pytest.fixture(scope="session")
+def sensor_reboot(make_valid_request):
     def inner():
         return make_valid_request(SensorMethod.REBOOT)
 
@@ -188,7 +200,7 @@ def reboot_sensor(make_valid_request):
 
 @pytest.fixture(autouse=True, scope="session")
 def setup_test_session(reset_sensor_to_factory, get_sensor_info):
-    print("Resetting sensor to factory settings before test session")
+    log.info("Resetting sensor to factory settings before test session")
     reset_sensor_to_factory()
     sensor_info = wait(get_sensor_info, lambda x: isinstance(x, dict), tries=15, timeout=1)
     if not sensor_info:
