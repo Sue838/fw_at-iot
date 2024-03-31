@@ -192,5 +192,5 @@ def setup_test_session(reset_sensor_to_factory, get_sensor_info):
     reset_sensor_to_factory()
     sensor_info = wait(get_sensor_info, lambda x: isinstance(x, dict), tries=15, timeout=1)
     if not sensor_info:
-        raise RuntimeError("Sensor didn't reset to factory property")
+        raise RuntimeError("Sensor didn't reset to factory properly")
 
