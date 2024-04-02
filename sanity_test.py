@@ -1,10 +1,6 @@
-from time import sleep
-from requests.exceptions import JSONDecodeError
-
-
 def test_sanity(get_sensor_info, get_sensor_reading):
     sensor_info = get_sensor_info()
-    
+   
     sensor_name = sensor_info.get("name")
     assert isinstance(sensor_name, str), "Sensor name is not a string"
 
