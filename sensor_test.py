@@ -35,7 +35,7 @@ def test_sanity(get_sensor_info, get_sensor_reading):
     log.info("Sanity test passed")
 
 
-def test_reboot(get_sensor_info, sensor_reboot):
+def test_reboot(get_sensor_info, reboot_sensor):
     """
     Steps:
         1. Get original sensor info.
@@ -48,7 +48,7 @@ def test_reboot(get_sensor_info, sensor_reboot):
     sensor_info_before_reboot = get_sensor_info()
 
     log.info("Reboot sensor")
-    reboot_response = sensor_reboot()
+    reboot_response = reboot_sensor()
     assert reboot_response == "rebooting", "Sensor did not return proper text in response to reboot request"
 
     log.info("Wait for sensor to come back online")
@@ -155,5 +155,50 @@ def test_update_sensor_firmware(get_sensor_info, update_sensor_firmware):
     assert get_sensor_info().firmware_version == max_firmware_version   
 
 
-    
+def test_set_invalid_sensor_reading_interval(get_sensor_info, set_sensor_reading_interval):
+    """
+    Test Steps:
+        1. Get original sensor reading interval.
+        2. Set interval to < 1
+        3. Validate that sensor responds with an error.
+        4. Get current sensor reading interval.
+        5. Validate that sensor reading interval didn't change.
+    """
+    log.info("Get original sensor reading interval")
+    original_sensor_reading_interval = get_sensor_info().reading_interval
 
+    log.info("Set interval to < 1")
+    sensor_response = set_sensor_reading_interval(-1)
+
+    log.info("Validate that sensor responds with an error")
+    assert sensor_response == {}
+
+    log.info("Get current sensor reading interval")
+    current_sensor_reading_interval = get_sensor_info().reading_interval
+
+    log.info("Validate that sensor reading interval didn't change")
+    assert original_sensor_reading_interval == current_sensor_reading_interval
+
+def test_set_empty_sensor_name(get_sensor_info, set_sensor_name):
+    """
+    Test Steps:
+        1. Get original sensor name.
+        2. Set sensor name to an empty string.
+        3. Validate that sensor responds with an error.
+        4. Get current sensor name.
+        5. Validate that sensor name didn't change.
+    """
+    log.info("Get original sensor name")
+    original_sensor_name = get_sensor_info().name
+
+    log.info("Set sensor name to an empty string")
+    sensor_response = set_sensor_name(" ")
+
+    log.info("Validate that sensor responds with an error")
+    assert sensor_response == {}
+
+    log.info("Get current sensor name")
+    current_sensor_name = get_sensor_info().name
+
+    log.info("Validate that sensor name didn't change")
+    original_sensor_name == current_sensor_name
