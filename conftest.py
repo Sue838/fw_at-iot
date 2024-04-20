@@ -41,7 +41,7 @@ class SensorInfo:
         if not isinstance(self.firmware_version, int):
             raise TypeError("'firmware_version' should be an integer")
 
-        if not 10 >= self.firmware_version >= 15:
+        if not 10 <= self.firmware_version <= 15:
             raise ValueError("'firmware_version' should be between 10 and 15")   
 
         
