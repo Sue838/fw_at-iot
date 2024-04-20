@@ -199,11 +199,11 @@ def get_sensor_reading(make_valid_request):
 
 @pytest.fixture(scope="session")
 def set_sensor_name(make_valid_request):
-    def _get_sensor_name(name: str):
+    def _set_sensor_name(name: str):
         log.info("Set sensor name to %s", name)
         return make_valid_request(SensorMethod.SET_NAME, {"name": name})
 
-    return _get_sensor_name
+    return _set_sensor_name
 
 
 @pytest.fixture(scope="session")
@@ -240,7 +240,7 @@ def reset_sensor_to_factory(make_valid_request, get_sensor_info):
             get_sensor_info, lambda x: isinstance(x, SensorInfo), tries=15, timeout=1
         )
         if not sensor_info:
-            raise RuntimeError("Sensor didn't reset to factory property")
+            raise RuntimeError("Sensor didn't reset to factory properly")
 
         return sensor_info
 
