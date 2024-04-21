@@ -152,7 +152,7 @@ def test_update_sensor_firmware(get_sensor_info, update_sensor_firmware):
 
     log.info("Validate that sensor version is max, sensor doesn't update and responds appropriately")
     assert update_sensor_firmware_response == "already at latest firmware version"
-    assert get_sensor_info().firmware_version == max_firmware_version   
+    assert get_sensor_info().firmware_version == max_firmware_version  
 
 
 def test_set_invalid_sensor_reading_interval(get_sensor_info, set_sensor_reading_interval):
