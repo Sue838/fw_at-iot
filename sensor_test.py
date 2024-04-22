@@ -2,8 +2,10 @@ from conftest import wait
 from conftest import SensorInfo
 from typing import Callable
 import logging
+import pytest
 
 log = logging.getLogger(__name__)
+
 
 def test_sanity(get_sensor_info, get_sensor_reading):
     sensor_info = get_sensor_info()
@@ -49,7 +51,9 @@ def test_reboot(get_sensor_info, reboot_sensor):
 
     log.info("Reboot sensor")
     reboot_response = reboot_sensor()
-    assert reboot_response == "rebooting", "Sensor did not return proper text in response to reboot request"
+    assert (
+        reboot_response == "rebooting"
+    ), "Sensor did not return proper text in response to reboot request"
 
     log.info("Wait for sensor to come back online")
     sensor_info_after_reboot = wait(
@@ -60,7 +64,10 @@ def test_reboot(get_sensor_info, reboot_sensor):
     )
 
     log.info("Validate that info from Step 1 is equal to info from Step 4")
-    assert sensor_info_before_reboot == sensor_info_after_reboot, "Sensor info after reboot doesn't match sensor info before reboot"
+    assert (
+        sensor_info_before_reboot == sensor_info_after_reboot
+    ), "Sensor info after reboot doesn't match sensor info before reboot"
+
 
 def test_set_sensor_name(get_sensor_info, set_sensor_name):
     """
@@ -68,7 +75,7 @@ def test_set_sensor_name(get_sensor_info, set_sensor_name):
     2. Get sensor_info.
     3. Validate that current sensor name matches the name set in Step 1.
     """
-    
+
     expected_name = "new_name"
 
     log.info(f"Set sensor name to {expected_name}")
@@ -76,9 +83,10 @@ def test_set_sensor_name(get_sensor_info, set_sensor_name):
 
     log.info("Get sensor info")
     sensor_info = get_sensor_info()
-    
+
     log.info("Validate that current sensor name matches the name set in Step 1.")
     assert sensor_info.name == expected_name, "Sensor didn't set its name correctly"
+
 
 def test_set_sensor_reading_interval(
     get_sensor_info, set_sensor_reading_interval, get_sensor_reading
@@ -101,14 +109,24 @@ def test_set_sensor_reading_interval(
     sensor_info = get_sensor_info()
 
     log.info("Validate that sensor reading interval is set to interval from Step 1")
-    assert sensor_info.reading_interval== expected_reading_interval, "Sensor didn't set its reading interval correctly" 
+    assert (
+        sensor_info.reading_interval == expected_reading_interval
+    ), "Sensor didn't set its reading interval correctly"
 
     log.info("Get sensor reading")
-    sensor_reading_before_waiting= get_sensor_reading()
+    sensor_reading_before_waiting = get_sensor_reading()
 
-    log.info("Wait for interval specified in Step 1 and get sensor reading and validate that reading from Step 4 doesn't equal reading from Step 6")
-    assert wait(func=get_sensor_reading, condition=lambda x: x != sensor_reading_before_waiting, tries=10, timeout=1,)
-  
+    log.info(
+        "Wait for interval specified in Step 1 and get sensor reading and validate that reading from Step 4 doesn't equal reading from Step 6"
+    )
+    assert wait(
+        func=get_sensor_reading,
+        condition=lambda x: x != sensor_reading_before_waiting,
+        tries=10,
+        timeout=1,
+    )
+
+
 # Максимальна версія прошивки сенсора -- 15
 def test_update_sensor_firmware(get_sensor_info, update_sensor_firmware):
     """
@@ -128,11 +146,13 @@ def test_update_sensor_firmware(get_sensor_info, update_sensor_firmware):
 
     log.info("Get current sensor firmware version")
     current_sensor_firmware_version = get_sensor_info().firmware_version
- 
+
     log.info("Repeat steps 1-4 until sensor is at max_firmware_version - 1")
     while current_sensor_firmware_version != max_firmware_version:
 
-        log.info("Validate that expected firmware version is +1 to current firmware version")
+        log.info(
+            "Validate that expected firmware version is +1 to current firmware version"
+        )
         expected_firware_version = current_sensor_firmware_version + 1
 
         log.info("Request firmware update")
@@ -141,21 +161,33 @@ def test_update_sensor_firmware(get_sensor_info, update_sensor_firmware):
         log.info("Insure sensor is updating")
         assert update_sensor_firmware_response == "updating"
 
-        log.info("While sensor is updating to version 14 validate expected firmware version is current version")
-        assert wait(func=get_sensor_info, condition=lambda x: x.firmware_version == expected_firware_version, tries=15, timeout=1,)
-        
+        log.info(
+            "While sensor is updating to version 14 validate expected firmware version is current version"
+        )
+        assert wait(
+            func=get_sensor_info,
+            condition=lambda x: x.firmware_version == expected_firware_version,
+            tries=15,
+            timeout=1,
+        )
+
         log.info("Sensor version is current version + 1")
         current_sensor_firmware_version += 1
-    
+
     log.info("Request another firmware update")
     update_sensor_firmware_response = update_sensor_firmware()
 
-    log.info("Validate that sensor version is max, sensor doesn't update and responds appropriately")
+    log.info(
+        "Validate that sensor version is max, sensor doesn't update and responds appropriately"
+    )
     assert update_sensor_firmware_response == "already at latest firmware version"
-    assert get_sensor_info().firmware_version == max_firmware_version   
+    assert get_sensor_info().firmware_version == max_firmware_version
 
 
-def test_set_invalid_sensor_reading_interval(get_sensor_info, set_sensor_reading_interval):
+@pytest.mark.parametrize("invalid_interval", [0.4, -1])
+def test_set_invalid_sensor_reading_interval(
+    get_sensor_info, set_sensor_reading_interval, invalid_interval
+):
     """
     Test Steps:
         1. Get original sensor reading interval.
@@ -168,16 +200,17 @@ def test_set_invalid_sensor_reading_interval(get_sensor_info, set_sensor_reading
     original_sensor_reading_interval = get_sensor_info().reading_interval
 
     log.info("Set interval to < 1")
-    sensor_response = set_sensor_reading_interval(-1)
-
     log.info("Validate that sensor responds with an error")
-    assert sensor_response == {}
+    assert (
+        set_sensor_reading_interval(invalid_interval) == {}
+    ), "Received no error in response to assigning sensor invalid reading interval"
 
     log.info("Get current sensor reading interval")
-    current_sensor_reading_interval = get_sensor_info().reading_interval
-
     log.info("Validate that sensor reading interval didn't change")
-    assert original_sensor_reading_interval == current_sensor_reading_interval
+    assert (
+        original_sensor_reading_interval == get_sensor_info().reading_interval
+    ), "Sensor reading interval changed when it shouldn't have"
+
 
 def test_set_empty_sensor_name(get_sensor_info, set_sensor_name):
     """
@@ -192,13 +225,17 @@ def test_set_empty_sensor_name(get_sensor_info, set_sensor_name):
     original_sensor_name = get_sensor_info().name
 
     log.info("Set sensor name to an empty string")
-    sensor_response = set_sensor_name(" ")
+    sensor_response = set_sensor_name("")
 
     log.info("Validate that sensor responds with an error")
-    assert sensor_response == {}
+    assert (
+        sensor_response == {}
+    ), "Recieved no error in response to assigning sensor empty name"
 
     log.info("Get current sensor name")
     current_sensor_name = get_sensor_info().name
 
     log.info("Validate that sensor name didn't change")
-    original_sensor_name == current_sensor_name
+    assert (
+        original_sensor_name == current_sensor_name
+    ), "Sensor name changed when it shouldn't have"
