@@ -8,6 +8,7 @@ from dataclasses import dataclass
 
 log = logging.getLogger(__name__)
 
+
 @dataclass
 class SensorInfo:
     name: str
@@ -19,17 +20,15 @@ class SensorInfo:
     def __post_init__(self):
         if not isinstance(self.name, str):
             raise TypeError("'name' should be a string")
-        
+
         if self.name == "":
             raise ValueError("'name' should not be empty")
-        
 
         if not isinstance(self.hid, str):
             raise TypeError("'hid' should be a string")
 
         if self.hid == "":
             raise ValueError("'hid' should not be empty")
-        
 
         if not isinstance(self.model, str):
             raise TypeError("'model' should be a string")
@@ -37,20 +36,19 @@ class SensorInfo:
         if self.model == "":
             raise ValueError("'model' should not be empty")
 
-
         if not isinstance(self.firmware_version, int):
             raise TypeError("'firmware_version' should be an integer")
 
         if not 10 <= self.firmware_version <= 15:
-            raise ValueError("'firmware_version' should be between 10 and 15")   
+            raise ValueError("'firmware_version' should be between 10 and 15")
 
-        
         if not isinstance(self.reading_interval, int):
             raise TypeError("'reading_interval' should be an integer")
 
         if self.reading_interval < 1:
             raise ValueError("'reading_interval' should be 1 or more than 1")
-           
+
+
 class SensorMethod(Enum):
     GET_INFO = "get_info"
     GET_READING = "get_reading"
@@ -62,9 +60,7 @@ class SensorMethod(Enum):
     REBOOT = "reboot"
 
 
-def make_valid_payload(
-    method: SensorMethod, params: dict | None = None
-) -> dict:
+def make_valid_payload(method: SensorMethod, params: dict | None = None) -> dict:
     payload = {"method": method, "jsonrpc": "2.0", "id": 1}
 
     if params:
@@ -78,27 +74,21 @@ def wait(func: Callable, condition: Callable, tries: int, timeout: int, **kwargs
         try:
             log.debug(
                 f"Calling function {func.__name__} with args {kwargs} - attempt {i + 1}"
-                )
+            )
             result = func(**kwargs)
 
             log.debug(
                 f"Evaluating result of the call with function {condition.__name__}"
-                )
+            )
             if condition(result):
                 return result
         except Exception as e:
-            log.debug(
-                f"Function call raised exception {e}, ignoring it"
-                )
+            log.debug(f"Function call raised exception {e}, ignoring it")
 
-        log.debug(
-            f"Sleeping for {timeout} seconds"
-            )
+        log.debug(f"Sleeping for {timeout} seconds")
         sleep(timeout)
 
-    log.debug(
-        "Exhausted all tries, condition evaluates to False, returning None"
-        )
+    log.debug("Exhausted all tries, condition evaluates to False, returning None")
     return
 
 
@@ -112,9 +102,7 @@ def pytest_addoption(parser):
     parser.addoption(
         "--sensor-port", action="store", default="9898", help="Sensor port"
     )
-    parser.addoption(
-        "--sensor-pin", action="store", default="0000", help="Sensor pin"
-    )
+    parser.addoption("--sensor-pin", action="store", default="0000", help="Sensor pin")
 
 
 @pytest.fixture(scope="session")
@@ -168,12 +156,10 @@ def send_post(sensor_host, sensor_port, sensor_pin):
 
 @pytest.fixture(scope="session")
 def make_valid_request(send_post):
-    def _make_valid_request(
-        method: SensorMethod, params: dict | None = None
-    ) -> dict:
+    def _make_valid_request(method: SensorMethod, params: dict | None = None) -> dict:
         payload = make_valid_payload(method=method, params=params)
         sensor_response = send_post(**payload)
-        return sensor_response.get("result", {})
+        return sensor_response
 
     return _make_valid_request
 
@@ -183,8 +169,15 @@ def get_sensor_info(make_valid_request):
     def _get_sensor_info():
         log.info("Get sensor info")
         sensor_response = make_valid_request(SensorMethod.GET_INFO)
-        return SensorInfo(**sensor_response)
+        result = None
 
+        if "result" in sensor_response:
+            result = SensorInfo(**sensor_response["result"])
+
+        if "error" in sensor_response:
+            result = sensor_response["error"]
+
+        return result
     return _get_sensor_info
 
 
@@ -201,8 +194,17 @@ def get_sensor_reading(make_valid_request):
 def set_sensor_name(make_valid_request):
     def _set_sensor_name(name: str):
         log.info("Set sensor name to %s", name)
-        return make_valid_request(SensorMethod.SET_NAME, {"name": name})
+        sensor_response = make_valid_request(SensorMethod.SET_NAME, {"name": name})
+        result = None
 
+        if "result" in sensor_response:
+            result = SensorInfo(**sensor_response["result"])
+
+        if "error" in sensor_response:
+            result = sensor_response["error"]
+        
+        return result
+    
     return _set_sensor_name
 
 
@@ -219,10 +221,19 @@ def get_sensor_methods(make_valid_request):
 def set_sensor_reading_interval(make_valid_request):
     def _set_sensor_reading_interval(interval: int):
         log.info("Set sensor reading interval to %d seconds", interval)
-        return make_valid_request(
+        sensor_response = make_valid_request(
             SensorMethod.SET_READING_INTERVAL, {"interval": interval}
         )
+        result = None
 
+        if "result" in sensor_response:
+            result = SensorInfo(**sensor_response["result"])
+
+        if "error" in sensor_response:
+            result = sensor_response["error"]
+        
+        return result
+    
     return _set_sensor_reading_interval
 
 
@@ -231,19 +242,21 @@ def reset_sensor_to_factory(make_valid_request, get_sensor_info):
     def _reset_sensor_to_factory():
         log.info("Send reset firmware request to sensor")
         sensor_response = make_valid_request(SensorMethod.RESET_TO_FACTORY)
-        if sensor_response != "resetting":
-            raise RuntimeError(
-                "Sensor didn't respond to factory reset properly"
+        if "result" in sensor_response:
+            if sensor_response ["result"] != "resetting":
+                raise RuntimeError("Sensor didn't respond to factory reset properly")
+
+            sensor_info = wait(
+                get_sensor_info, lambda x: isinstance(x, SensorInfo), tries=15, timeout=1
             )
+            if not sensor_info:
+                raise RuntimeError("Sensor didn't reset to factory properly")
 
-        sensor_info = wait(
-            get_sensor_info, lambda x: isinstance(x, SensorInfo), tries=15, timeout=1
-        )
-        if not sensor_info:
-            raise RuntimeError("Sensor didn't reset to factory properly")
-
-        return sensor_info
-
+            return sensor_info
+    
+        if "error" in sensor_response:
+            return sensor_response["error"]
+        
     return _reset_sensor_to_factory
 
 
@@ -269,8 +282,10 @@ def reboot_sensor(make_valid_request):
 def setup_test_session(reset_sensor_to_factory, get_sensor_info):
     log.info("Resetting sensor to factory settings before test session")
     reset_sensor_to_factory()
-    sensor_info = wait(get_sensor_info, lambda x: isinstance(x, SensorInfo), tries=15, timeout=1)
-    
+    sensor_info = wait(
+        get_sensor_info, lambda x: isinstance(x, SensorInfo), tries=15, timeout=1
+    )
+
     if not sensor_info:
         raise RuntimeError("Sensor didn't reset to factory properly")
 
