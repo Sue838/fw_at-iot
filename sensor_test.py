@@ -3,7 +3,6 @@ from conftest import SensorInfo
 from typing import Callable
 import logging
 import pytest
-import pytest
 
 log = logging.getLogger(__name__)
 
