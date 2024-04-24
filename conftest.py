@@ -193,6 +193,7 @@ def get_sensor_reading(make_valid_request):
 @pytest.fixture(scope="session")
 def set_sensor_name(make_valid_request):
     def _set_sensor_name(name: str):
+    def _set_sensor_name(name: str):
         log.info("Set sensor name to %s", name)
         sensor_response = make_valid_request(SensorMethod.SET_NAME, {"name": name})
         result = None
