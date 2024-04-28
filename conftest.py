@@ -178,6 +178,7 @@ def get_sensor_info(make_valid_request):
             result = sensor_response["error"]
 
         return result
+
     return _get_sensor_info
 
 
@@ -193,7 +194,6 @@ def get_sensor_reading(make_valid_request):
 @pytest.fixture(scope="session")
 def set_sensor_name(make_valid_request):
     def _set_sensor_name(name: str):
-    def _set_sensor_name(name: str):
         log.info("Set sensor name to %s", name)
         sensor_response = make_valid_request(SensorMethod.SET_NAME, {"name": name})
         result = None
@@ -203,9 +203,9 @@ def set_sensor_name(make_valid_request):
 
         if "error" in sensor_response:
             result = sensor_response["error"]
-        
+
         return result
-    
+
     return _set_sensor_name
 
 
@@ -232,9 +232,9 @@ def set_sensor_reading_interval(make_valid_request):
 
         if "error" in sensor_response:
             result = sensor_response["error"]
-        
+
         return result
-    
+
     return _set_sensor_reading_interval
 
 
@@ -244,20 +244,23 @@ def reset_sensor_to_factory(make_valid_request, get_sensor_info):
         log.info("Send reset firmware request to sensor")
         sensor_response = make_valid_request(SensorMethod.RESET_TO_FACTORY)
         if "result" in sensor_response:
-            if sensor_response ["result"] != "resetting":
+            if sensor_response["result"] != "resetting":
                 raise RuntimeError("Sensor didn't respond to factory reset properly")
 
             sensor_info = wait(
-                get_sensor_info, lambda x: isinstance(x, SensorInfo), tries=15, timeout=1
+                get_sensor_info,
+                lambda x: isinstance(x, SensorInfo),
+                tries=15,
+                timeout=1,
             )
             if not sensor_info:
                 raise RuntimeError("Sensor didn't reset to factory properly")
 
             return sensor_info
-    
+
         if "error" in sensor_response:
             return sensor_response["error"]
-        
+
     return _reset_sensor_to_factory
 
 
@@ -265,7 +268,15 @@ def reset_sensor_to_factory(make_valid_request, get_sensor_info):
 def update_sensor_firmware(make_valid_request):
     def _update_sensor_firmware():
         log.info("Send firmware update request to sensor")
-        return make_valid_request(SensorMethod.UPDATE_FIRMWARE)
+        sensor_response = make_valid_request(SensorMethod.UPDATE_FIRMWARE)
+        result = None
+        if "result" in sensor_response:
+            result = sensor_response["result"]
+
+        if "error" in sensor_response:
+            result = sensor_response["error"]
+
+        return result
 
     return _update_sensor_firmware
 
@@ -274,7 +285,16 @@ def update_sensor_firmware(make_valid_request):
 def reboot_sensor(make_valid_request):
     def _reboot_sensor():
         log.info("Send reboot request to sensor")
-        return make_valid_request(SensorMethod.REBOOT)
+        sensor_response = make_valid_request(SensorMethod.REBOOT)
+        result = None
+
+        if "result" in sensor_response:
+            result = sensor_response["result"]
+
+        if "error" in sensor_response:
+            result = sensor_response["error"]
+
+        return result
 
     return _reboot_sensor
 
